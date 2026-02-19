@@ -21,11 +21,13 @@ pipeline {
 
                 docker network create app-network || true
 
-                docker rm -f backend1 || true
-                docker rm -f backend2 || true
+                docker rm -f backend1 backend2 || true
 
-                # wait for docker cleanup
-                sleep 3
+                # wait until containers are fully removed
+                while docker ps -a --format '{{.Names}}' | grep -E 'backend1|backend2'; do
+                    echo "Waiting for containers to be removed..."
+                    sleep 2
+                done
 
                 echo "Starting backend containers..."
 
@@ -48,13 +50,10 @@ pipeline {
                   -p 80:80 \
                   nginx:latest
 
-                # allow nginx to start
                 sleep 5
 
-                # copy configuration file
                 docker cp ./nginx/default.conf nginx-lb:/etc/nginx/conf.d/default.conf || true
 
-                # restart container so config loads
                 docker restart nginx-lb
                 '''
             }
