@@ -6,6 +6,8 @@ pipeline {
         stage('Build Backend Image') {
             steps {
                 sh '''
+                echo "Building backend Docker image..."
+
                 docker rmi -f backend-app || true
                 docker build -t backend-app backend
                 '''
@@ -15,6 +17,8 @@ pipeline {
         stage('Deploy Backend Containers') {
             steps {
                 sh '''
+                echo "Deploying backend containers..."
+
                 docker network create app-network || true
                 docker rm -f backend1 backend2 || true
 
@@ -27,6 +31,8 @@ pipeline {
         stage('Deploy NGINX Load Balancer') {
             steps {
                 sh '''
+                echo "Deploying NGINX load balancer..."
+
                 docker rm -f nginx-lb || true
 
                 docker run -d \
@@ -35,9 +41,14 @@ pipeline {
                   -p 80:80 \
                   nginx:latest
 
-                # copy nginx configuration from workspace
+                # wait for nginx startup
+                sleep 5
+
+                # copy load balancer configuration
                 docker cp ./nginx/default.conf nginx-lb:/etc/nginx/conf.d/default.conf
 
+                # restart nginx so config loads
+                docker restart nginx-lb
                 '''
             }
         }
